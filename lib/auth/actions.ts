@@ -1,6 +1,6 @@
 "use server";
 
-import {cookies, headers} from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { and, eq, lt } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -62,10 +62,10 @@ const signUpSchema = z.object({
 
 export async function signUp(formData: FormData) {
   const rawData = {
-    name: formData.get('name') as string,
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
+    name: formData.get("name") as string,
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+  };
 
   const data = signUpSchema.parse(rawData);
 
@@ -88,9 +88,9 @@ const signInSchema = z.object({
 
 export async function signIn(formData: FormData) {
   const rawData = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+  };
 
   const data = signInSchema.parse(rawData);
 
@@ -108,8 +108,8 @@ export async function signIn(formData: FormData) {
 export async function getCurrentUser() {
   try {
     const session = await auth.api.getSession({
-      headers: await headers()
-    })
+      headers: await headers(),
+    });
 
     return session?.user ?? null;
   } catch (e) {
@@ -119,7 +119,7 @@ export async function getCurrentUser() {
 }
 
 export async function signOut() {
-  await auth.api.signOut({ headers: {} });
+  await auth.api.signOut({ headers: await headers() });
   return { ok: true };
 }
 
@@ -130,9 +130,9 @@ export async function mergeGuestCartWithUserCart() {
 
 async function migrateGuestToUser() {
   const cookieStore = await cookies();
-  const token = (await cookieStore).get("guest_session")?.value;
+   const token = cookieStore.get("guest_session")?.value;
   if (!token) return;
 
   await db.delete(guests).where(eq(guests.sessionToken, token));
-  (await cookieStore).delete("guest_session");
+   cookieStore.delete("guest_session");
 }

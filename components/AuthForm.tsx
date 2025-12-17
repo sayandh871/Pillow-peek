@@ -3,37 +3,52 @@
 import { useState } from "react";
 import Link from "next/link";
 import SocialProviders from "./SocialProviders";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 type Props = {
   mode: "sign-in" | "sign-up";
-  onSubmit: (formData: FormData) => Promise<{ ok: boolean; userId?: string } | void>;
+  onSubmit: (
+    formData: FormData
+  ) => Promise<{ ok: boolean; userId?: string } | void>;
 };
 
 export default function AuthForm({ mode, onSubmit }: Props) {
   const [show, setShow] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     const formData = new FormData(e.currentTarget);
 
     try {
       const result = await onSubmit(formData);
 
-      if(result?.ok) router.push("/");
+      if (result?.ok) router.push("/");
+      else if (result) setError("Authentication failed. Please try again.");
     } catch (e) {
-      console.log("error", e);
+      console.error("Auth error:", e);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <p className="text-caption text-dark-700">
-          {mode === "sign-in" ? "Don’t have an account? " : "Already have an account? "}
-          <Link href={mode === "sign-in" ? "/sign-up" : "/sign-in"} className="underline">
+          {mode === "sign-in"
+            ? "Don’t have an account? "
+            : "Already have an account? "}
+          <Link
+            href={mode === "sign-in" ? "/sign-up" : "/sign-in"}
+            className="underline"
+          >
             {mode === "sign-in" ? "Sign Up" : "Sign In"}
           </Link>
         </p>
@@ -57,10 +72,7 @@ export default function AuthForm({ mode, onSubmit }: Props) {
         <hr className="h-px w-full border-0 bg-light-300" />
       </div>
 
-      <form
-        className="space-y-4"
-        onSubmit={handleSubmit}
-      >
+      <form className="space-y-4" onSubmit={handleSubmit}>
         {mode === "sign-up" && (
           <div className="space-y-1">
             <label htmlFor="name" className="text-caption text-dark-900">
@@ -103,7 +115,9 @@ export default function AuthForm({ mode, onSubmit }: Props) {
               type={show ? "text" : "password"}
               placeholder="minimum 8 characters"
               className="w-full rounded-xl border border-light-300 bg-light-100 px-4 py-3 pr-12 text-body text-dark-900 placeholder:text-dark-500 focus:outline-none focus:ring-2 focus:ring-dark-900/10"
-              autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+              autoComplete={
+                mode === "sign-in" ? "current-password" : "new-password"
+              }
               minLength={8}
               required
             />
@@ -141,5 +155,3 @@ export default function AuthForm({ mode, onSubmit }: Props) {
     </div>
   );
 }
-
-
