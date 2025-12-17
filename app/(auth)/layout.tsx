@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <section className="hidden lg:flex flex-col justify-between bg-dark-900 text-light-100 p-10">
         <div className="flex items-center">
           <div className="h-8 w-8 rounded-md bg-orange inline-flex items-center justify-center">
-            <Image src="/logo.svg" alt="Nike" width={20} height={20} />
+            <Image src="/logo.svg" alt="Pillow Peek" width={20} height={20} />
           </div>
         </div>
 
