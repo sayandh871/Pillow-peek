@@ -19,7 +19,7 @@ const addToCartSchema = z.object({
 
 const updateCartItemSchema = z.object({
   itemId: z.string().uuid(),
-  quantity: z.number().int().min(0), // 0 could imply remove, but we usually have removeCartItem
+  quantity: z.number().int().min(0),
 });
 
 // -----------------------------------------------------------------------------
@@ -79,22 +79,18 @@ export async function getCart() {
     }
   }
 
-  // Flatten structure for UI consumption if needed, or return raw.
-  // Returning raw Drizzle result is fine for now, store can adapt.
   return cart || null;
 }
 
 export async function addCartItem(input: { variantId: string; quantity: number }) {
   const { variantId, quantity } = addToCartSchema.parse(input);
-  
-  // 1. Determine Identity (User or Guest)
   console.log(`[Adding to Cart] Variant: ${variantId}, Qty: ${quantity}`);
   
   const user = await getCurrentUser();
   let cartId: string;
 
+  // 1. Get or Create Cart
   if (user) {
-    // User Cart
     let cart = await db.query.carts.findFirst({
       where: eq(carts.userId, user.id),
     });
@@ -103,10 +99,8 @@ export async function addCartItem(input: { variantId: string; quantity: number }
     }
     cartId = cart.id;
   } else {
-    // Guest Cart
     let { sessionToken } = await guestSession();
     if (!sessionToken) {
-        // Create new guest session
         const res = await createGuestSession();
         if (res.ok && res.sessionToken) sessionToken = res.sessionToken;
         else throw new Error("Failed to create guest session");
@@ -121,68 +115,83 @@ export async function addCartItem(input: { variantId: string; quantity: number }
     cartId = cart.id;
   }
 
-  // 2. Check Stock
+  // 2. Stock Check & Insert (neon-http doesn't support transactions)
+  // Check current stock
   const variant = await db.query.productVariants.findFirst({
-    where: eq(productVariants.id, variantId),
-    columns: { stockQuantity: true, price: true }
+      where: eq(productVariants.id, variantId),
+      columns: { stockQuantity: true }
   });
   
   if (!variant) throw new Error("Variant not found");
   
-  console.log(`[Stock Check] Available: ${variant.stockQuantity}, Requested: ${quantity}`);
-
-  if (variant.stockQuantity < quantity) {
-      throw new Error(`Out of Stock. Only ${variant.stockQuantity} available.`);
-  }
-
-  // 3. Upsert Item
+  // Check if item already exists in cart
   const existingItem = await db.query.cartItems.findFirst({
-    where: and(eq(cartItems.cartId, cartId), eq(cartItems.variantId, variantId)),
+      where: and(eq(cartItems.cartId, cartId), eq(cartItems.variantId, variantId)),
   });
 
-  if (existingItem) {
-    const newQuantity = existingItem.quantity + quantity;
-    if (variant.stockQuantity < newQuantity) {
-        throw new Error(`Cannot add more. Max limit is ${variant.stockQuantity}`);
-    }
-    await db.update(cartItems)
-      .set({ quantity: newQuantity, updatedAt: new Date() })
-      .where(eq(cartItems.id, existingItem.id));
-  } else {
-    // Double check constraint for concurrent edge cases? (Optional for MVP)
-    if (variant.stockQuantity < quantity) throw new Error("Out of stock");
+  const currentQty = existingItem ? existingItem.quantity : 0;
+  const totalRequested = currentQty + quantity;
 
-    await db.insert(cartItems).values({
-      cartId,
-      variantId,
-      quantity,
-    });
+  // Validate stock before insert/update
+  if (variant.stockQuantity < totalRequested) {
+       throw new Error(`Out of Stock. Max available: ${variant.stockQuantity}`);
+  }
+
+  // Perform update or insert
+  if (existingItem) {
+      await db.update(cartItems)
+          .set({ quantity: totalRequested, updatedAt: new Date() })
+          .where(eq(cartItems.id, existingItem.id));
+  } else {
+      await db.insert(cartItems).values({
+          cartId,
+          variantId,
+          quantity,
+      });
   }
 
   revalidatePath("/cart");
   return { success: true };
 }
 
+async function verifyCartOwnership(itemId: string) {
+    const user = await getCurrentUser();
+    
+    const item = await db.query.cartItems.findFirst({
+        where: eq(cartItems.id, itemId),
+        with: {
+            cart: true,
+            variant: true
+        }
+    });
+
+    if (!item) throw new Error("Item not found");
+
+    if (user) {
+        if (item.cart.userId !== user.id) {
+            throw new Error("Unauthorized: Cart does not belong to user");
+        }
+    } else {
+        const { sessionToken } = await guestSession();
+        if (!sessionToken || item.cart.sessionToken !== sessionToken) {
+            throw new Error("Unauthorized: Cart does not belong to session");
+        }
+    }
+    return item;
+}
+
 export async function updateCartItem(input: { itemId: string; quantity: number }) {
   const { itemId, quantity } = updateCartItemSchema.parse(input);
 
-  // Validate item existence & stock (optional but safer)
-  // We should check if the cart belongs to current session.
-  // Skipping strict ownership check for MVP speed unless critical security flaw.
-  // But standard practice is to join cart and check userId/session.
-  
-  const item = await db.query.cartItems.findFirst({
-      where: eq(cartItems.id, itemId),
-      with: { variant: true }
-  });
-
-  if (!item) throw new Error("Item not found");
+  // Authorization Check
+  const item = await verifyCartOwnership(itemId);
 
   if (quantity === 0) {
       await db.delete(cartItems).where(eq(cartItems.id, itemId));
   } else {
+      // Stock Check
       if (item.variant.stockQuantity < quantity) {
-          throw new Error("Quantity exceeds stock");
+          throw new Error(`Quantity exceeds stock. Max: ${item.variant.stockQuantity}`);
       }
       await db.update(cartItems)
           .set({ quantity, updatedAt: new Date() })
@@ -194,7 +203,9 @@ export async function updateCartItem(input: { itemId: string; quantity: number }
 }
 
 export async function removeCartItem(itemId: string) {
-  // Validate ownership ideally
+  // Authorization Check
+  await verifyCartOwnership(itemId);
+  
   await db.delete(cartItems).where(eq(cartItems.id, itemId));
   revalidatePath("/cart");
   return { success: true };
@@ -210,7 +221,6 @@ export async function mergeCart(guestToken: string, userId: string) {
 
   if (!guestCart || guestCart.items.length === 0) return;
 
-  // Find or Create User Cart
   let userCart = await db.query.carts.findFirst({
       where: eq(carts.userId, userId)
   });
@@ -219,27 +229,22 @@ export async function mergeCart(guestToken: string, userId: string) {
       [userCart] = await db.insert(carts).values({ userId }).returning();
   }
 
-  // Merge Items
   for (const item of guestCart.items) {
       const existingUserItem = await db.query.cartItems.findFirst({
           where: and(eq(cartItems.cartId, userCart.id), eq(cartItems.variantId, item.variantId))
       });
 
       if (existingUserItem) {
-          // Add quantities
           await db.update(cartItems)
               .set({ quantity: existingUserItem.quantity + item.quantity })
               .where(eq(cartItems.id, existingUserItem.id));
-          // Delete guest item since we merged
           await db.delete(cartItems).where(eq(cartItems.id, item.id)); 
       } else {
-          // Move item to user cart
           await db.update(cartItems)
               .set({ cartId: userCart.id })
               .where(eq(cartItems.id, item.id));
       }
   }
 
-  // Delete Guest Cart
   await db.delete(carts).where(eq(carts.id, guestCart.id));
 }

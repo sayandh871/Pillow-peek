@@ -3,14 +3,14 @@
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
-import { type ProductWithRelations, type ProductVariantWithRelations } from "@/lib/db/queries";
+import { type ProductVariantWithRelations } from "@/lib/db/queries";
 import { useCartStore } from "@/store/cart.store";
 import { addCartItem } from "@/lib/actions/cart";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface BuyBoxProps {
-  product: ProductWithRelations;
+  product: { name: string; basePrice: string | number };
   selectedVariant: ProductVariantWithRelations | undefined;
 }
 
@@ -38,8 +38,6 @@ export function BuyBox({ product, selectedVariant }: BuyBoxProps) {
                   await sync();
                   toast.success(`Added ${product.name} to your cart!`);
               } else {
-                  // Handle custom error response if action returned structure differs, 
-                  // but assuming action throws on error or returns success: true
                   toast.error("Could not add item to cart.");
               }
           } catch (error: any) {
@@ -49,10 +47,10 @@ export function BuyBox({ product, selectedVariant }: BuyBoxProps) {
       });
   };
     
-  const price = selectedVariant ? selectedVariant.price : product.basePrice;
+  // Handle price type potentially being string or number
+  const price = selectedVariant ? Number(selectedVariant.price) : Number(product.basePrice);
   const isOutOfStock = !isAvailable(selectedVariant);
   
-  // Guard: Determine exact state
   const isDisabled = !selectedVariant || isOutOfStock || isPending;
 
   return (
@@ -60,7 +58,7 @@ export function BuyBox({ product, selectedVariant }: BuyBoxProps) {
       <div className="mb-6">
         <div className="flex items-baseline gap-2">
            <span className="text-3xl font-bold text-gray-900">
-             ${Number(price).toFixed(2)}
+             ${price.toFixed(2)}
            </span>
         </div>
         <p className="mt-1 text-sm text-gray-500">
@@ -75,7 +73,7 @@ export function BuyBox({ product, selectedVariant }: BuyBoxProps) {
             size="lg" 
             className={cn(
                 "w-full text-lg transition-all",
-                isOutOfStock && "grayscale opacity-80 cursor-not-allowed" // UI Feedback
+                isOutOfStock && "grayscale opacity-80 cursor-not-allowed"
             )}
             disabled={isDisabled}
             onClick={handleAddToCart}

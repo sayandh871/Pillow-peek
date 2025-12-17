@@ -100,7 +100,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       await get().sync();
     } catch (error) {
        // Rollback? Sync will fix it.
-       get().sync();
+       await get().sync();
     }
   },
 
@@ -113,7 +113,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       await removeCartItem(itemId);
       await get().sync();
     } catch (error) {
-      get().sync();
+      await get().sync();
     }
   },
 }));

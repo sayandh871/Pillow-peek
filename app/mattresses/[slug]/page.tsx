@@ -74,10 +74,13 @@ export default async function ProductPage(props: {
       if (selectedSize !== defaultVariant.sizeId || selectedFirmness !== defaultVariant.firmnessId) {
           redirect(`/mattresses/${params.slug}?${newParams.toString()}`);
       }
-      // If we are here, it means we have params but maybe logic failed to find variant? 
-      // Or we matched default exactly but somehow landed in else? 
-      // Actually if selectedSize/Firmness match, we enter first IF block.
-      // So this ELSE block is purely for "Missing Params".
+      
+      // Fallback: If we are here, params might match default but selectedVariant is undefined 
+      // because logic inside first IF block failed or we skipped it.
+      // Ensure we have a variant to render.
+      if (!selectedVariant) {
+          selectedVariant = defaultVariant;
+      }
   }
 
   // Derive unique materials from all variants for the specs section
