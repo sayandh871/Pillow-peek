@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import SocialProviders from "./SocialProviders";
 
@@ -27,6 +30,82 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const showConfirm = mode === "sign-up";
   const showFullName = mode === "sign-up";
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErrors({});
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const data: Record<string, string> = {};
+      formData.forEach((value, key) => {
+        data[key] = value as string;
+      });
+
+      // Validation
+      const newErrors: Record<string, string> = {};
+
+      if (!data.email) {
+        newErrors.email = "Email is required";
+      } else if (!data.email.includes("@")) {
+        newErrors.email = "Please enter a valid email";
+      }
+
+      if (!data.password) {
+        newErrors.password = "Password is required";
+      } else if (data.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters";
+      }
+
+      if (showFullName && !data.fullName) {
+        newErrors.fullName = "Full name is required";
+      }
+
+      if (showConfirm) {
+        if (!data.confirmPassword) {
+          newErrors.confirmPassword = "Please confirm your password";
+        } else if (data.password !== data.confirmPassword) {
+          newErrors.confirmPassword = "Passwords do not match";
+        }
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Submit to API
+      const endpoint = mode === "sign-in" ? "/api/auth/sign-in" : "/api/auth/sign-up";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setErrors({
+          submit: errorData.message || `${mode === "sign-in" ? "Sign in" : "Sign up"} failed. Please try again.`,
+        });
+      } else {
+        // Success - optionally redirect or show success message
+        const result = await response.json();
+        console.log("Auth successful:", result);
+        // You can redirect or handle success here
+      }
+    } catch (err) {
+      setErrors({
+        submit: err instanceof Error ? err.message : "An error occurred. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md rounded-2xl bg-light-100 p-6 shadow-sm ring-1 ring-light-300 sm:p-8">
       <div className="flex items-center justify-between text-caption text-dark-700">
@@ -50,7 +129,13 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         </div>
       </div>
 
-      <form className="mt-6 space-y-4">
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        {errors.submit && (
+          <div className="rounded-lg bg-red-50 p-3 text-body text-red-700 border border-red-200">
+            {errors.submit}
+          </div>
+        )}
+
         {showFullName && (
           <div className="space-y-2">
             <label className="text-caption text-dark-900" htmlFor="fullName">
@@ -61,9 +146,12 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               name="fullName"
               type="text"
               required
-              className="w-full rounded-lg border border-light-300 bg-light-100 px-3 py-2.5 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20"
+              className={`w-full rounded-lg border bg-light-100 px-3 py-2.5 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20 ${
+                errors.fullName ? "border-red-500" : "border-light-300"
+              }`}
               placeholder="Enter your full name"
             />
+            {errors.fullName && <p className="text-caption text-red-600">{errors.fullName}</p>}
           </div>
         )}
 
@@ -76,9 +164,12 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             name="email"
             type="email"
             required
-            className="w-full rounded-lg border border-light-300 bg-light-100 px-3 py-2.5 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20"
+            className={`w-full rounded-lg border bg-light-100 px-3 py-2.5 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20 ${
+              errors.email ? "border-red-500" : "border-light-300"
+            }`}
             placeholder="you@example.com"
           />
+          {errors.email && <p className="text-caption text-red-600">{errors.email}</p>}
         </div>
 
         <div className="space-y-2">
@@ -91,7 +182,9 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               name="password"
               type="password"
               required
-              className="w-full rounded-lg border border-light-300 bg-light-100 px-3 py-2.5 pr-10 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20"
+              className={`w-full rounded-lg border bg-light-100 px-3 py-2.5 pr-10 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20 ${
+                errors.password ? "border-red-500" : "border-light-300"
+              }`}
               placeholder="minimum 8 characters"
             />
             <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-dark-700/70">
@@ -108,6 +201,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               </svg>
             </span>
           </div>
+          {errors.password && <p className="text-caption text-red-600">{errors.password}</p>}
         </div>
 
         {showConfirm && (
@@ -120,17 +214,21 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               name="confirmPassword"
               type="password"
               required
-              className="w-full rounded-lg border border-light-300 bg-light-100 px-3 py-2.5 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20"
+              className={`w-full rounded-lg border bg-light-100 px-3 py-2.5 text-body text-dark-900 outline-none ring-offset-2 focus:border-dark-900 focus:ring-2 focus:ring-dark-900/20 ${
+                errors.confirmPassword ? "border-red-500" : "border-light-300"
+              }`}
               placeholder="Re-enter your password"
             />
+            {errors.confirmPassword && <p className="text-caption text-red-600">{errors.confirmPassword}</p>}
           </div>
         )}
 
         <button
           type="submit"
-          className="inline-flex w-full items-center justify-center rounded-full bg-dark-900 px-4 py-3 text-body-medium font-medium text-light-100 transition-colors hover:bg-dark-700"
+          disabled={isSubmitting}
+          className="inline-flex w-full items-center justify-center rounded-full bg-dark-900 px-4 py-3 text-body-medium font-medium text-light-100 transition-colors hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {content.cta}
+          {isSubmitting ? "Submitting..." : content.cta}
         </button>
       </form>
 
