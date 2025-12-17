@@ -36,56 +36,8 @@ export async function getFilteredProducts(params: ProductFilterParams) {
   // Construct the WHERE clause for variants
   const whereClause = variantConditions.length > 0 ? and(...variantConditions) : undefined;
 
-  // Query builder
-  const query = db
-    .select({
-      id: products.id,
-      name: products.name,
-      description: products.description,
-      basePrice: products.basePrice,
-      slug: products.name, // Assuming name as slug for now, ideally add slug to schema
-      imageUrl: sql<string>`(SELECT url FROM product_images WHERE product_id = ${products.id} ORDER BY "order" LIMIT 1)`,
-      minPrice: sql<number>`min(${productVariants.price})`, // Start from price
-      maxPrice: sql<number>`max(${productVariants.price})`,
-      variantCount: count(productVariants.id),
-      // Aggregated available options for swatches
-      availableSizes: sql<string[]>`array_agg(distinct ${productVariants.sizeId})`,
-      availableMaterials: sql<string[]>`array_agg(distinct ${productVariants.materialId})`,
-    })
-    .from(products)
-    .innerJoin(productVariants, eq(products.id, productVariants.productId))
-    .where(and(
-       eq(products.isPublished, true),
-       whereClause
-    ))
-    .groupBy(products.id);
-
-    // Filter "valid" start price (stock > 0 check could be here or in WHERE). 
-    // Ideally we filter variants where stock > 0 for the price calculation,
-    // but Drizzle "min" aggregation works on the joined rows.
-    // If we want "Starting from X (where X is in stock)", we should add stock > 0 to the WHERE clause.
-    // But if we do that, we hide out-of-stock variants completely (which might be intended or not).
-    // User requested: "Refinement: "Starting From" Logic... calculate min(price) only for variants where stock_quantity > 0"
-    // So we should add a holistic filter on the join or a CASE statement.
-    // A strict WHERE clause effectively removes products that have NO in-stock variants matching criteria.
-    // Let's modify the join or aggregation. 
-    // Simple approach: Add (stock > 0) to the WHERE. This means products with 0 stock variants are excluded from list?
-    // Or just excluded from price calculation?
-    // "Adjustment: Your Drizzle query should calculate the min(price) only for variants where stock_quantity > 0."
-    // This implies using a filtered aggregation or filtering the join.
-    // Filtering the JOIN/WHERE is cleaner for performance. We only want to sell available stuff.
-    // So distinct product listing will be "Products that have at least one variant fitting criteria AND in stock".
-    
-    // Adding stock check to WHERE
-    // variantConditions.push(gt(productVariants.stockQuantity, 0)); // Aggressive
-    
-    // Better: We want to show the product even if OOS? "Out of Stock overlay if all variants... have stock=0".
-    // So we CANNOT filter out OOS rows entirely if we want to show "OOS" badge.
-    // However, for "Starting From", we want Min Price of In-Stock items.
-    // We can use a CASE statement inside MIN().
-    
-    // Refined Query with CASE for Min Price
-    const refinedQuery = db.select({
+  // Refined Query with CASE for Min Price
+  const refinedQuery = db.select({
       id: products.id,
       name: products.name,
       description: products.description,

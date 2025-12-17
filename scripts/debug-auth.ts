@@ -33,13 +33,13 @@ async function debugAuth() {
     });
 
     console.log('✅ Signup successful result:', res);
+    process.exit(0);
   } catch (error) {
     console.error('❌ Signup failed:', error);
     if (error) {
          console.error('Full Error:', JSON.stringify(error, null, 2));
     }
-  } finally {
-    process.exit(0);
+    process.exit(1);
   }
 }
 

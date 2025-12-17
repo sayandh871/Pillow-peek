@@ -4,13 +4,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { FilterSidebar } from "./Sidebar";
+import { FilterSidebar, type FilterOption } from "./Sidebar";
 import { Menu } from "lucide-react"; // Or simple SVG text
 
 type MobileDrawerProps = {
-  sizes: any[];
-  firmness: any[];
-  materials: any[];
+  sizes: FilterOption[];
+  firmness: FilterOption[];
+  materials: FilterOption[];
 };
 
 export function MobileDrawer({ sizes, firmness, materials }: MobileDrawerProps) {

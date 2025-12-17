@@ -17,10 +17,10 @@ async function testCreateUser() {
     });
 
     console.log('✅ Manual INSERT successful.');
+    process.exit(0);
   } catch (error) {
     console.error('❌ Manual INSERT failed:', error);
-  } finally {
-    process.exit(0);
+    process.exit(1);
   }
 }
 

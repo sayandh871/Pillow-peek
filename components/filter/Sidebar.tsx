@@ -11,7 +11,7 @@ import qs from "query-string";
 import { cn } from "@/lib/utils"; // Assuming standard utils
 
 // Types for options passed from Server Component
-type FilterOption = {
+export type FilterOption = {
   id: string;
   label: string;
 };

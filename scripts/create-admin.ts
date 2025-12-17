@@ -28,10 +28,10 @@ async function promoteToAdmin() {
       .where(eq(users.email, email));
 
     console.log(`✅ User ${email} is now an admin.`);
+    process.exit(0);
   } catch (error) {
     console.error('❌ Failed to promote user:', error);
-  } finally {
-    process.exit(0);
+    process.exit(1);
   }
 }
 
