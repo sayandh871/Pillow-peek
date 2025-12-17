@@ -1,6 +1,6 @@
 {
-  "id": "14ade147-64d1-4ea0-8953-c6bee0457c99",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "f253eabb-963e-4783-85ef-b6ad7ff8b0d2",
+  "prevId": "14ade147-64d1-4ea0-8953-c6bee0457c99",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -820,18 +820,6 @@
           "columns": [
             {
               "expression": "size_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "firmness_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "material_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
