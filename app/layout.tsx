@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import { Jost } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 const jost = Jost({
   variable: "--font-jost",
   subsets: ["latin"],
 });
+
 export const metadata: Metadata = {
   title: "Pillow Peek",
-  description: "Pillow Peek is a e-commerce platform for buying and selling mattresses.",
+  description: "Pillow Peek is an e-commerce platform for buying and selling mattresses.",
 };
 
 export default function RootLayout({
@@ -20,13 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${jost.className} antialiased`}
-      >
-        <Navbar />
-        {children}
-        <Footer />
-      </body>
+      <body className={`${jost.className} antialiased`}>{children}</body>
     </html>
   );
 }
