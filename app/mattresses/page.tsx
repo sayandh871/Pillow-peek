@@ -1,126 +1,121 @@
-
 import { Suspense } from "react";
-import { getFilteredProducts, getFilterMetadata } from "@/lib/db/queries";
-import { ProductCard } from "@/components/ProductCard";
 import { FilterSidebar } from "@/components/filter/Sidebar";
-import { MobileDrawer } from "@/components/filter/MobileDrawer";
 import { SortDropdown } from "@/components/SortDropdown";
+import { ProductCard } from "@/components/ProductCard";
+import { MobileDrawer } from "@/components/filter/MobileDrawer";
+import { db } from "@/lib/db";
+import { sizes as sizesTable, firmness as firmnessTable, materials as materialsTable } from "@/lib/db/schema";
+import { getAllProducts } from "@/lib/actions/product";
+import { parseSearchParams } from "@/lib/utils/query";
+import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
-// Next.js 15 searchParams is a Promise
-type Params = Promise<{ [key: string]: string | string[] | undefined }>;
+// Force dynamic rendering for searchParams
+export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(props: { searchParams: Params }): Promise<Metadata> {
-  const searchParams = await props.searchParams;
-  const materials = searchParams.materials;
-  const sizes = searchParams.sizes;
-  
-  let title = "Mattresses | Pillow Peek";
-  if (typeof materials === 'string') {
-      title = `${materials} Mattresses | Pillow Peek`; // Simple logic, improves SEO
-  }
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+    const params = await searchParams;
+    const filters = parseSearchParams(params);
+    const countText = filters.sizes?.length ? `${filters.sizes.length} sizes` : 'Luxury Mattresses';
+    return {
+        title: `Shop ${countText} | Pillow-Peek`,
+        description: 'Find your perfect sleep with our premium mattress collection.',
+    }
+}
+
+async function getFilterOptions() {
+  const [sizes, firmness, materials] = await Promise.all([
+    db.select().from(sizesTable),
+    db.select().from(firmnessTable),
+    db.select().from(materialsTable),
+  ]);
   
   return {
-    title,
-    description: "Find your perfect sleep with our premium mattress collection.",
+    sizes: sizes.map(s => ({ id: s.id, label: s.name })),
+    firmness: firmness.map(f => ({ id: f.id, label: f.name })),
+    materials: materials.map(m => ({ id: m.id, label: m.name })),
   };
 }
 
-export default async function MattressesPage(props: {
-  searchParams: Params;
+export default async function MattressesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const searchParams = await props.searchParams;
-
-  // Helper to ensure array
-  const toArray = (val: string | string[] | undefined) => {
-    if (!val) return undefined;
-    if (Array.isArray(val)) return val;
-    // Handle comma-separated strings if query-string parsed them as string? 
-    // Next.js searchParams handles standard repeating params (?s=a&s=b) as array.
-    // If we use comma separation (?s=a,b) manually, we need to split.
-    if (val.includes(',')) return val.split(',');
-    return [val];
-  };
-
-  const sizes = toArray(searchParams.sizes);
-  const firmness = toArray(searchParams.firmness);
-  const materials = toArray(searchParams.materials);
-  const minPrice = searchParams.minPrice ? Number(searchParams.minPrice) : undefined;
-  const maxPrice = searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined;
-  const sort = searchParams.sort as "price_asc" | "price_desc" | "newest" | undefined;
-  const page = searchParams.page ? Number(searchParams.page) : 1;
-
-  // Fetch data in parallel
-  const [productsData, filterOptions] = await Promise.all([
-    getFilteredProducts({
-      sizes,
-      firmness,
-      materials,
-      minPrice,
-      maxPrice,
-      sort,
-      page,
-      limit: 12,
-    }),
-    getFilterMetadata(),
-  ]);
+  const resolvedParams = await searchParams;
+  const filters = parseSearchParams(resolvedParams);
+  const filterOptions = await getFilterOptions();
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-baseline justify-between border-b pb-6 pt-24">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-          Our Collection
-        </h1>
-        <div className="flex items-center gap-4">
-          <SortDropdown />
-          <MobileDrawer 
-             sizes={filterOptions.sizes} 
-             firmness={filterOptions.firmness} 
-             materials={filterOptions.materials} 
-          />
+      <div className="flex flex-col gap-8 lg:flex-row">
+        {/* Mobile Filter Drawer */}
+        <div className="lg:hidden">
+          <MobileDrawer {...filterOptions} />
+        </div>
+
+        {/* Desktop Sidebar */}
+        <aside className="hidden w-64 flex-shrink-0 lg:block">
+          <FilterSidebar {...filterOptions} />
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              Mattresses
+            </h1>
+            <SortDropdown />
+          </div>
+
+          <Suspense fallback={<ProductGridSkeleton />}>
+            <ProductGrid filters={filters} />
+          </Suspense>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <section className="pt-6 pb-24">
-        <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-4">
-          {/* Desktop Filter Sidebar */}
-          <aside className="hidden lg:block">
-            <FilterSidebar
-              sizes={filterOptions.sizes}
-              firmness={filterOptions.firmness}
-              materials={filterOptions.materials}
-            />
-          </aside>
+async function ProductGrid({ filters }: { filters: ReturnType<typeof parseSearchParams> }) {
+  const { products, totalCount } = await getAllProducts(filters);
 
-          {/* Product Grid */}
-          <div className="lg:col-span-3">
-             <Suspense fallback={<div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8"><div className="h-64 bg-gray-100 rounded animate-pulse"></div><div className="h-64 bg-gray-100 rounded animate-pulse"></div><div className="h-64 bg-gray-100 rounded animate-pulse"></div></div>}>
-                {productsData.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
-                    {productsData.map((product) => (
-                        <ProductCard
-                        key={product.id}
-                        id={product.id}
-                        name={product.name}
-                        description={product.description}
-                        basePrice={product.basePrice}
-                        imageUrl={product.imageUrl}
-                        startingPrice={product.startingPrice}
-                        availableSizes={product.availableSizes}
-                        availableFirmness={product.availableFirmness}
-                        />
-                    ))}
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No products found</h3>
-                        <p className="mt-1 text-sm text-gray-500">Try adjusting your filters.</p>
-                    </div>
-                )}
-            </Suspense>
-          </div>
-        </div>
-      </section>
+  if (products.length === 0) {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+        <h3 className="text-lg font-semibold">No mattresses found</h3>
+        <p className="text-muted-foreground">
+          Try adjusting your filters or clearing them to see more results.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          id={product.id}
+          name={product.name}
+          description={product.description}
+          basePrice={product.basePrice}
+          startingPrice={product.minPrice}
+          imageUrl={product.imageUrl}
+          availableSizes={product.availableSizes || []}
+          availableFirmness={[]} // We didn't aggregate firmness in current query for performance, can add if needed
+        />
+      ))}
+    </div>
+  );
+}
+
+function ProductGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="h-[400px] rounded-xl bg-gray-100 animate-pulse" />
+      ))}
     </div>
   );
 }

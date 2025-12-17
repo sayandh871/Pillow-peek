@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1765960532663,
-      "tag": "0000_sturdy_nuke",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1765973026820,
-      "tag": "0001_slow_sersi",
+      "when": 1765981907646,
+      "tag": "0000_misty_speed",
       "breakpoints": true
     }
   ]

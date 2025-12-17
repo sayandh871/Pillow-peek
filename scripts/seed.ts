@@ -14,6 +14,8 @@ async function seed() {
   try {
     // 1. Clear existing data (in order of dependency)
     console.log('Cleaning up old data...');
+    const { productImages } = await import('../lib/db/schema');
+    await db.delete(productImages);
     await db.delete(productVariants);
     await db.delete(products);
     await db.delete(sizes);
@@ -63,69 +65,107 @@ async function seed() {
     // 3. Seed Products & Variants
     console.log('Seeding products and variants...');
 
-    const productTemplates = [
-      { name: 'Cloud Sleeper', basePrice: 500, description: 'Like sleeping on a cloud.' },
-      { name: 'Orthopedic Dream', basePrice: 800, description: 'Perfect validation for your back.' },
-      { name: 'Eco Green', basePrice: 1200, description: 'Organic materials for healthy sleep.' },
-      { name: 'The Standard', basePrice: 400, description: 'Reliable and affordable.' },
-      { name: 'Luxury Hotel', basePrice: 1500, description: 'Five-star comfort at home.' },
-      { name: 'Cool Breeze', basePrice: 900, description: 'Stay cool all night long.' },
-      { name: 'Spinal Support', basePrice: 750, description: 'Engineered for alignment.' },
-      { name: 'Snuggle Nest', basePrice: 600, description: 'Cozy and encompassing.' },
-      { name: 'Firm Foundation', basePrice: 550, description: 'No sink, just support.' },
-      { name: 'Night Owl', basePrice: 650, description: 'For those who sleep late.' },
+    // 16 Product Names
+    const productNames = [
+      'Cloud Sleeper', 'Orthopedic Dream', 'Eco Green', 'The Standard', 
+      'Luxury Hotel', 'Cool Breeze', 'Spinal Support', 'Snuggle Nest', 
+      'Firm Foundation', 'Night Owl', 'Golden Slumber', 'Royal Comfort',
+      'Zen Haven', 'Pure Bliss', 'Deep Rest', 'Morning Glory'
     ];
 
-    for (const p of productTemplates) {
-      // Create Product
-      const [product] = await db.insert(products).values({
-        categoryId: mattressCat.id,
-        name: p.name,
-        description: p.description,
-        basePrice: p.basePrice.toString(),
-        isPublished: true,
-      }).returning();
+    // 16 Image files (mapped from directory listing)
+    const imageFiles = [
+        'mattress-1.webp', 'mattress-2.webp', 'mattress-3.webp', 'mattress-4.webp',
+        'mattress-5.webp', 'mattress-6.webp', 'mattress-7.webp', 'mattress-8.webp',
+        'mattress-9.webp', 'mattress-10.webp', 'mattress-11.webp', 'mattress-12.webp',
+        'mattress-13.webp', 'mattress-14.webp', 'mattress-15.webp', 'mattress-16.webp'
+    ];
 
-      // Pick a random material for this product to act as its "core" material
-      const material = materialData[Math.floor(Math.random() * materialData.length)];
+    const descriptions = [
+        'Like sleeping on a cloud.', 'Perfect validation for your back.',
+        'Organic materials for healthy sleep.', 'Reliable and affordable.',
+        'Five-star comfort at home.', 'Stay cool all night long.',
+        'Engineered for alignment.', 'Cozy and encompassing.',
+        'No sink, just support.', 'For those who sleep late.',
+        'Drift away into golden dreams.', 'Fit for royalty.',
+        'Find your inner peace.', 'Pure unadulterated bliss.',
+        'The deepest sleep you ever had.', 'Wake up fresh every morning.'
+    ];
 
-      // Create Variants (Cross product of Size x Firmness)
-      const variantsToInsert = [];
-      
-      for (const size of sizeData) {
-        for (const firm of firmnessData) {
-          // Price Multiplier Logic
-          let multiplier = 1.0;
-          if (size.id === 'twin-xl') multiplier = 1.1;
-          if (size.id === 'full') multiplier = 1.3;
-          if (size.id === 'queen') multiplier = 1.5;
-          if (size.id === 'king') multiplier = 1.8;
-          if (size.id === 'cal-king') multiplier = 1.9;
+    const prices = [500, 800, 1200, 400, 1500, 900, 750, 600, 550, 650, 1100, 2000, 950, 1300, 850, 700];
 
-          // Firmness shouldn't affect price much, maybe +$50 for specialized ones, but let's keep it simple.
-          
-          const variantPrice = (p.basePrice * multiplier).toFixed(2);
-          
-          // SKU: PROD-INITIALS-SIZE-FIRM
-          const initials = p.name.split(' ').map(w => w[0]).join('').toUpperCase();
-          const sku = `${initials}-${size.id.toUpperCase()}-${firm.id.toUpperCase()}-${Math.floor(Math.random()*1000)}`;
-
-          variantsToInsert.push({
-            productId: product.id,
-            sizeId: size.id,
-            firmnessId: firm.id,
-            materialId: material.id, // Using the product's chosen material
-            price: variantPrice,
-            stockQuantity: Math.floor(Math.random() * 50) + 10, // Random stock 10-60
-            sku: sku,
-            weight: (30 * multiplier).toFixed(2), // Rough weight approx
-          });
-        }
-      }
-
-      // Bulk insert variants
-      await db.insert(productVariants).values(variantsToInsert);
+    // Ensure we have 16 items in all arrays
+    if (productNames.length !== 16 || imageFiles.length !== 16) {
+        throw new Error("Configuration error: Need exactly 16 names and images.");
     }
+
+    const productsToInsert = [];
+    const imagesToInsert = [];
+    const variantsToInsert = [];
+
+    // Pre-generate IDs for products to link images/variants
+    // Actually, we can just await the insert or do it in a loop.
+    // Loop is safer for ensuring we get the IDs back.
+    
+    // productImages is already imported at the top of the function
+
+    for (let i = 0; i < 16; i++) {
+        const name = productNames[i];
+        const desc = descriptions[i];
+        const basePrice = prices[i];
+        const imageFile = imageFiles[i];
+
+        // insert product
+        const [product] = await db.insert(products).values({
+            categoryId: mattressCat.id,
+            name: name,
+            description: desc,
+            basePrice: basePrice.toString(),
+            isPublished: true,
+        }).returning();
+
+        // insert image
+        await db.insert(productImages).values({
+            productId: product.id,
+            url: `/mattress/${imageFile}`,
+            altText: `${name} Mattress`,
+            order: 0,
+        });
+
+        // Pick a random material
+        const material = materialData[Math.floor(Math.random() * materialData.length)];
+
+        // Generate Variants
+        for (const size of sizeData) {
+            for (const firm of firmnessData) {
+                let multiplier = 1.0;
+                if (size.id === 'twin-xl') multiplier = 1.1;
+                if (size.id === 'full') multiplier = 1.3;
+                if (size.id === 'queen') multiplier = 1.5;
+                if (size.id === 'king') multiplier = 1.8;
+                if (size.id === 'cal-king') multiplier = 1.9;
+
+                const variantPrice = (basePrice * multiplier).toFixed(2);
+                const initials = name.split(' ').map(w => w[0]).join('').toUpperCase();
+                const sku = `${initials}-${size.id.toUpperCase()}-${firm.id.toUpperCase()}-${Math.floor(Math.random()*1000)}`;
+
+                variantsToInsert.push({
+                    productId: product.id,
+                    sizeId: size.id,
+                    firmnessId: firm.id,
+                    materialId: material.id,
+                    price: variantPrice,
+                    stockQuantity: Math.floor(Math.random() * 50) + 5, // Ensure min stock > 0 for now to valid listings
+                    sku: sku,
+                    weight: (30 * multiplier).toFixed(2),
+                });
+            }
+        }
+    }
+
+    // Bulk insert all variants
+    // Note: this might be large, but for 16 products * 6 sizes * 4 firmness = 384 rows, it's fine.
+    await db.insert(productVariants).values(variantsToInsert);
 
     console.log('✅ Seed complete!');
   } catch (error) {
