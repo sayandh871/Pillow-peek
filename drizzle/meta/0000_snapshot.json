@@ -1,5 +1,5 @@
 {
-  "id": "14ade147-64d1-4ea0-8953-c6bee0457c99",
+  "id": "0f398328-3f4b-4e50-b25a-66a32fafa5e9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -492,6 +492,20 @@
           "primaryKey": false,
           "notNull": false
         },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -820,18 +834,6 @@
           "columns": [
             {
               "expression": "size_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "firmness_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "material_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
