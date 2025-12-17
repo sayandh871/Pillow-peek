@@ -90,3 +90,28 @@ export async function getFilterMetadata() {
     materials: materialsData,
   };
 }
+
+export async function getProduct(id: string) {
+  // Use query builder for relational fetching which is cleaner for deep nesting
+  const product = await db.query.products.findFirst({
+    where: eq(products.id, id),
+    with: {
+      images: {
+        orderBy: (images, { asc }) => [asc(images.order)],
+      },
+      variants: {
+        with: {
+          size: true,
+          firmness: true,
+          material: true,
+        },
+      },
+      reviews: true,
+    },
+  });
+
+  return product;
+}
+
+export type ProductWithRelations = NonNullable<Awaited<ReturnType<typeof getProduct>>>;
+export type ProductVariantWithRelations = ProductWithRelations["variants"][number];
