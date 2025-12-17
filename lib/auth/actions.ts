@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import { guests } from "../db/schema";
 import { db } from "../db";
 import { auth } from ".";
+import { mergeCart } from "../actions/cart";
 
 const COOKIE_OPTIONS = {
   httpOnly: true as const,
@@ -77,7 +78,9 @@ export async function signUp(formData: FormData) {
     },
   });
 
-  await migrateGuestToUser();
+  if (res.user?.id) {
+    await migrateGuestToUser(res.user.id);
+  }
   return { ok: true, userId: res.user?.id };
 }
 
@@ -101,7 +104,9 @@ export async function signIn(formData: FormData) {
     },
   });
 
-  await migrateGuestToUser();
+  if (res.user?.id) {
+    await migrateGuestToUser(res.user.id);
+  }
   return { ok: true, userId: res.user?.id };
 }
 
@@ -123,15 +128,18 @@ export async function signOut() {
   return { ok: true };
 }
 
-export async function mergeGuestCartWithUserCart() {
-  await migrateGuestToUser();
+export async function mergeGuestCartWithUserCart(userId: string) {
+  await migrateGuestToUser(userId);
   return { ok: true };
 }
 
-async function migrateGuestToUser() {
+async function migrateGuestToUser(userId: string) {
   const cookieStore = await cookies();
    const token = cookieStore.get("guest_session")?.value;
   if (!token) return;
+
+  // Merge Cart
+  await mergeCart(token, userId);
 
   await db.delete(guests).where(eq(guests.sessionToken, token));
    cookieStore.delete("guest_session");
