@@ -108,7 +108,7 @@ export function VariantSelector({ variants }: VariantSelectorProps) {
                         disabled={!isAvailable}
                         className={cn(
                             "w-full",
-                            !isAvailable && "opacity-50 dashed border-gray-300",
+                            !isAvailable && "opacity-50 border-dashed border-gray-300",
                              isSelected ? "ring-2 ring-offset-1 ring-black" : ""
                         )}
                         onClick={() => handleSelection("firmness", firmnessId)}

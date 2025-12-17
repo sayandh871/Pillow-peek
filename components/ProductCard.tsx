@@ -8,9 +8,8 @@ export type ProductCardProps = {
   id: string;
   name: string;
   description: string | null;
-  basePrice: string; // or number, db returns decimal string usually
+  startingPrice: number | string | null; // was basePrice (string)
   imageUrl: string | null;
-  startingPrice: number | null;
   availableSizes: string[];
   availableFirmness: string[];
 };

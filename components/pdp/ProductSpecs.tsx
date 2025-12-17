@@ -7,9 +7,10 @@ import {
 
 interface ProductSpecsProps {
     description: string;
+    materials?: string[];
 }
 
-export function ProductSpecs({ description }: ProductSpecsProps) {
+export function ProductSpecs({ description, materials = [] }: ProductSpecsProps) {
     return (
         <div className="space-y-8 border-t pt-8 mt-8">
             {/* Description */}
@@ -43,14 +44,17 @@ export function ProductSpecs({ description }: ProductSpecsProps) {
                 </div>
             </div>
 
-            {/* Technical Specs (Collapsible simulated with just a list for now, as user asked for collapsible but simple is better for SEO) */}
+            {/* Technical Specs */}
              <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Construction & Materials</h3>
                 <ul className="list-disc list-inside space-y-2 text-sm text-gray-600">
-                    <li>3" Cooling Gel Memory Foam Top Layer</li>
-                    <li>2" Transition Response Foam</li>
-                    <li>6" High-Density Support Core</li>
-                    <li>Breathable Tencel™ Cover</li>
+                    {materials.length > 0 ? (
+                        materials.map((material, idx) => (
+                            <li key={idx}>{material}</li>
+                        ))
+                    ) : (
+                        <li>No specific material information available.</li>
+                    )}
                 </ul>
             </div>
         </div>

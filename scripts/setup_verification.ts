@@ -1,3 +1,4 @@
+import { hash } from 'bcryptjs';
 import 'dotenv/config';
 import { db } from '../lib/db';
 import { products, reviews, users } from '../lib/db/schema';
@@ -20,11 +21,12 @@ async function setupVerification() {
   let userId;
   if (allUsers.length === 0) {
       console.log('Creating dummy user for reviews...');
+      const hashedPassword = await hash('dummy', 10);
       const [newUser] = await db.insert(users).values({
           email: 'reviewer@example.com',
           name: 'Reviewer',
-          password: 'dummy',
-          role: 'user' // Check if enum or string? Schema checked: users.ts needed.
+          password: hashedPassword,
+          role: 'user' 
       }).returning();
       userId = newUser.id;
   } else {

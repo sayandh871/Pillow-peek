@@ -1,4 +1,4 @@
-import { Star, StarHalf } from "lucide-react";
+import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StarRatingProps {
@@ -17,15 +17,7 @@ export function StarRating({
   // Clamp rating between 0 and maxStars
   const clampedRating = Math.min(Math.max(0, rating), maxStars);
 
-  const fullStars = Math.floor(clampedRating);
-  const hasHalfStar = clampedRating % 1 >= 0.25 && clampedRating % 1 < 0.75;
-  // If decimal is >= 0.75, it typically rounds up visually to a full star in some systems, 
-  // but standard "floor + half" logic usually implies:
-  // 4.0 - 4.24 -> 4 stars
-  // 4.25 - 4.74 -> 4.5 stars
-  // 4.75 - 5.0 -> 5 stars? 
-  // Let's implement rounding to nearest 0.5 for display purposes first.
-  
+  // Round to nearest 0.5 for display
   const displayRating = Math.round(clampedRating * 2) / 2;
   const renderFullStars = Math.floor(displayRating);
   const renderHalfStar = displayRating % 1 !== 0;

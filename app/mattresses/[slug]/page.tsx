@@ -1,6 +1,6 @@
 
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getProduct, getFilteredProducts } from "@/lib/db/queries";
 import { Gallery } from "@/components/pdp/Gallery";
 import { VariantSelector } from "@/components/pdp/VariantSelector";
@@ -55,32 +55,35 @@ export default async function ProductPage(props: {
   const filteredRelated = relatedProducts.filter(p => p.id !== product.id).slice(0, 4);
 
 
-  // Determine selected variant based on URL params
+  // Determine selected variant based on URL params - Strict Logic
+  // We ONLY set selectedVariant if both size and firmness are present in URL.
+  // If not, we check if we should redirect to a default configuration.
+  
   const selectedSize = typeof searchParams.size === 'string' ? searchParams.size : undefined;
   const selectedFirmness = typeof searchParams.firmness === 'string' ? searchParams.firmness : undefined;
 
   let selectedVariant = undefined;
 
-  // If both selected, find exact match
   if (selectedSize && selectedFirmness) {
-      selectedVariant = product.variants.find(
-          v => v.sizeId === selectedSize && v.firmnessId === selectedFirmness
-      );
-  } 
-  // If only one selected, or none, we might want to pick a default?
-  // Usually landing on PDP shows a default configuration (e.g. Queen, Medium) or the "Starting From" price variant.
-  // For now, if no params, we don't select a specific one for the BuyBox (it shows range or asks to select), 
-  // BUT the BuyBox logic I wrote expects a variant to show a specific price.
-  // Let's pick a default if nothing selected: First variant?
-  // Or "Queen" "Medium"?
-  
-  if (!selectedVariant && !selectedSize && !selectedFirmness && product.variants.length > 0) {
-      // Pick middle ground or first
-      // Try to find Queen/Medium
+       selectedVariant = product.variants.find(
+           v => v.sizeId === selectedSize && v.firmnessId === selectedFirmness
+       );
+  } else if (product.variants.length > 0) {
+      // No full selection -> Redirect to default (Queen/Medium or First)
       const defaultVariant = product.variants.find(v => v.sizeId === 'queen' && v.firmnessId === 'medium') || product.variants[0];
-      // We don't auto-redirect (avoid flicker), but we can pass it as "initial"
-      selectedVariant = defaultVariant;
+      
+      // Construct query params
+      const newParams = new URLSearchParams();
+      // Ensure we have size/firmness from defaultVariant
+      if (defaultVariant.sizeId) newParams.set('size', defaultVariant.sizeId);
+      if (defaultVariant.firmnessId) newParams.set('firmness', defaultVariant.firmnessId);
+      
+      // Redirect to same path with params
+      redirect(`/mattresses/${params.slug}?${newParams.toString()}`);
   }
+
+  // Derive unique materials from all variants for the specs section
+  const variantMaterials = Array.from(new Set(product.variants.map(v => v.material?.name).filter(Boolean))) as string[];
 
 
   // Calculate firmness rating for the specific variant if possible, 
@@ -106,7 +109,7 @@ export default async function ProductPage(props: {
           <div className="mt-10 px-4 sm:mt-16 sm:px-0 lg:mt-0">
              <div className="mb-4">
                  <Badge variant="secondary" className="mb-2">
-                     {product.variants[0]?.material?.name || "Premium Material"}
+                     {selectedVariant?.material?.name || "Premium Material"}
                  </Badge>
                  <h1 className="text-3xl font-bold tracking-tight text-gray-900">{product.name}</h1>
                  
@@ -148,7 +151,7 @@ export default async function ProductPage(props: {
              </div>
 
              <div className="mt-10">
-                 <ProductSpecs description={product.description || ""} />
+                 <ProductSpecs description={product.description || ""} materials={variantMaterials} />
              </div>
           </div>
         </div>
@@ -165,9 +168,9 @@ export default async function ProductPage(props: {
                         id={related.id}
                         name={related.name}
                         description={related.description}
-                        basePrice={related.basePrice}
-                        imageUrl={related.imageUrl}
                         startingPrice={related.startingPrice}
+                        imageUrl={related.imageUrl}
+
                         availableSizes={related.availableSizes}
                         availableFirmness={related.availableFirmness}
                     />

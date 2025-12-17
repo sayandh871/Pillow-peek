@@ -19,8 +19,6 @@ export function Gallery({ images, productName }: GalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  const currentImage = images[selectedIndex];
-
   if (!images.length) {
     return (
       <div className="aspect-square flex items-center justify-center bg-gray-100 rounded-lg">
@@ -28,6 +26,8 @@ export function Gallery({ images, productName }: GalleryProps) {
       </div>
     );
   }
+
+  const currentImage = images[selectedIndex];
 
   return (
     <div className="flex flex-col-reverse gap-4 md:flex-row">
