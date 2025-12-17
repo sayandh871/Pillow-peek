@@ -1,49 +1,89 @@
-import Card from "@/components/Card";
 
-const latestMattress = [
+import Card from "../../components/Card";
+import {getCurrentUser} from "@/lib/auth/actions";
+
+const products = [
   {
-    title: "CloudSoft Memory Foam",
-    description: "Plush cooling foam ideal for side sleepers.",
-    price: 899,
+    id: 1,
+    title: "CloudRest Memory Foam",
+    subtitle: "Premium Mattress",
+    meta: "Medium Firm · Pressure Relief",
+    price: 18999,
     imageSrc: "/mattress/mattress-1.webp",
-    meta: '12" profile • Medium-soft',
+    badge: { label: "Best Seller", tone: "orange" as const },
   },
   {
-    title: "OrthoSupport Hybrid",
-    description: "Pocketed coils with foam for balanced support.",
-    price: 1199,
+    id: 2,
+    title: "OrthoCare Spine Support",
+    subtitle: "Orthopedic Mattress",
+    meta: "Firm · Back Pain Relief",
+    price: 20999,
     imageSrc: "/mattress/mattress-2.webp",
-    meta: '13" profile • Medium',
+    badge: { label: "Doctor Recommended", tone: "red" as const },
   },
   {
-    title: "FirmAlign Latex",
-    description: "Responsive latex feel for back/stomach sleepers.",
-    price: 1099,
+    id: 3,
+    title: "CoolBreeze Latex Plus",
+    subtitle: "Natural Latex Mattress",
+    meta: "Cooling · Breathable",
+    price: 26999,
     imageSrc: "/mattress/mattress-3.webp",
-    meta: '10" profile • Firm',
+    badge: { label: "Cooling", tone: "green" as const },
+  },
+  {
+    id: 4,
+    title: "Hybrid Luxe Pro",
+    subtitle: "Hybrid Mattress",
+    meta: "Pocket Springs · Foam Layers",
+    price: 29999,
+    imageSrc: "/mattress/mattress-4.webp",
+  },
+  {
+    id: 5,
+    title: "SleepSoft Comfort",
+    subtitle: "Foam Mattress",
+    meta: "Soft · Plush Feel",
+    price: 15999,
+    imageSrc: "/mattress/mattress-5.webp",
+    badge: { label: "New", tone: "orange" as const },
+  },
+  {
+    id: 6,
+    title: "RoyalSleep Elite",
+    subtitle: "Luxury Mattress",
+    meta: "Hotel Grade · Extra Thick",
+    price: 34999,
+    imageSrc: "/mattress/mattress-6.webp",
+    badge: { label: "Luxury", tone: "green" as const },
   },
 ];
 
-export default function Home() {
+
+const Home = async () => {
+  
+
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10 md:px-6 lg:px-8">
-      <section className="space-y-6">
-        <h2 className="text-heading-2 text-dark-900">Latest Mattress</h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {latestMattress.map((item) => (
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section aria-labelledby="latest" className="pb-12">
+        <h2 id="latest" className="mb-6 text-heading-3 text-dark-900">
+          Latest Mattresses
+        </h2>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((p) => (
             <Card
-              key={item.title}
-              title={item.title}
-              description={item.description}
-              price={item.price}
-              meta={item.meta}
-              imageSrc={item.imageSrc}
+              key={p.id}
+              title={p.title}
+              subtitle={p.subtitle}
+              meta={p.meta}
+              imageSrc={p.imageSrc}
+              price={p.price}
+              badge={p.badge}
             />
           ))}
         </div>
       </section>
-    </div>
+    </main>
   );
-}
+};
 
-
+export default Home;

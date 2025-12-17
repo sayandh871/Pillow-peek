@@ -1,12 +1,7 @@
 import AuthForm from "@/components/AuthForm";
+import {signUp} from "@/lib/auth/actions";
 
-export default function SignUpPage() {
-  return (
-    <div className="w-full max-w-xl space-y-6">
-      <p className="text-caption font-medium text-dark-700">Create account</p>
-      <AuthForm mode="sign-up" />
-    </div>
-  );
+export default function Page() {
+  return <AuthForm mode="sign-up" onSubmit={signUp} />;
 }
-
 

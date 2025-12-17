@@ -1,12 +1,7 @@
 import AuthForm from "@/components/AuthForm";
+import {signIn} from "@/lib/auth/actions";
 
-export default function SignInPage() {
-  return (
-    <div className="w-full max-w-xl space-y-6">
-      <p className="text-caption font-medium text-dark-700">Sign in</p>
-      <AuthForm mode="sign-in" />
-    </div>
-  );
+export default function Page() {
+  return <AuthForm mode="sign-in" onSubmit={signIn} />;
 }
-
 
