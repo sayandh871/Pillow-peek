@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   description: "Pillow Peek is an e-commerce platform for buying and selling mattresses.",
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,6 +29,7 @@ export default function RootLayout({
             {children}
         </main>
         <Footer />
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

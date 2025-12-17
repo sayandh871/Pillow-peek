@@ -126,34 +126,116 @@ export async function getAllProducts(filters: ProductFilters) {
   };
 }
 
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+export type ProductDetails = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
+export type ProductReview = Awaited<ReturnType<typeof getProductReviews>>[number];
+export type RecommendedProduct = Awaited<ReturnType<typeof getRecommendedMattresses>>[number];
+
+// -----------------------------------------------------------------------------
+// Actions
+// -----------------------------------------------------------------------------
+
 export async function getProductBySlug(slug: string) {
-  // Assuming 'name' is being used as slug for now based on previous files, 
-  // but we should match how it's stored.
-  // The user prompt asked to use db.query.products.findFirst
+  // SLUG STRATEGY: 
+  // Since the current schema does NOT have a slug column, and we are using UUIDs in URLs,
+  // we treat the 'slug' as the product ID.
   
   const product = await db.query.products.findFirst({
-    where: eq(products.name, slug), // matching by name as placeholder for slug
+    where: eq(products.id, slug), 
     with: {
+      category: true,
+      images: {
+        orderBy: (images, { asc }) => [asc(images.order)],
+      },
       variants: {
         with: {
           size: true,
           firmness: true,
           material: true,
-        }
+        },
       },
-      images: {
-        orderBy: (images, { asc }) => [asc(images.order)]
-      },
-      category: true,
+      // Fetch just rating for the summary stars
       reviews: {
-          with: {
-              user: true // assuming we want reviewer name
-          },
-          limit: 10,
-          orderBy: (reviews, { desc }) => [desc(reviews.createdAt)]
+          columns: {
+              rating: true,
+          }
+      }
+    },
+  });
+
+  if (!product) return null;
+
+  return product;
+}
+
+export async function getProductReviews(productId: string) {
+  // Fetch approved reviews (assuming all reviews in DB are approved for now, or add filtered column if exists)
+  // Schema check: reviews table has [id, productId, userId, rating, comment, createdAt...]
+  
+  const productReviews = await db.query.reviews.findMany({
+    where: eq(reviews.productId, productId),
+    with: {
+      user: {
+        columns: {
+          name: true,
+          image: true,
+        }
+      }
+    },
+    orderBy: (reviews, { desc }) => [desc(reviews.createdAt)],
+  });
+
+  return productReviews;
+}
+
+export async function getRecommendedMattresses(productId: string) {
+  // 1. Get the current product's category
+  const currentProduct = await db.query.products.findFirst({
+    where: eq(products.id, productId),
+    columns: { categoryId: true, id: true },
+  });
+
+  if (!currentProduct?.categoryId) return [];
+
+  // 2. Fetch 4 other products in the same category
+  const recommendations = await db.query.products.findMany({
+    where: and(
+        eq(products.categoryId, currentProduct.categoryId),
+        sql`${products.id} != ${currentProduct.id}` // Exclude current
+    ),
+    limit: 4,
+    with: {
+      images: {
+        limit: 1,
+        orderBy: (images, { asc }) => [asc(images.order)],
+      },
+      variants: {
+          // We need price info
+          columns: {
+              price: true,
+              stockQuantity: true,
+          }
       }
     }
   });
 
-  return product;
+  // Calculate starting price for standard display
+  return recommendations.map(p => {
+    // Basic logic to find min price
+    const prices = p.variants.map(v => Number(v.price));
+    const startingPrice = prices.length > 0 ? Math.min(...prices) : Number(p.basePrice);
+    
+    return {
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        imageUrl: p.images[0]?.url || null,
+        startingPrice: startingPrice,
+        availableSizes: [], // Simplified for recommendation card
+        availableFirmness: [] 
+    };
+  });
 }

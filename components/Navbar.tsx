@@ -16,8 +16,18 @@ const NAV_LINKS = [
   { label: "Contact", href: "/contact" },
 ] as const;
 
+import { useCartStore } from "@/store/cart.store";
+import { useEffect } from "react";
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { items, sync } = useCartStore();
+
+  useEffect(() => {
+    sync();
+  }, [sync]);
+
+  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <header className="sticky top-0 z-50 bg-light-100">
@@ -53,9 +63,9 @@ export default function Navbar() {
           <button className="text-body text-dark-900 transition-colors hover:text-dark-700">
             Search
           </button>
-          <button className="text-body text-dark-900 transition-colors hover:text-dark-700">
-            My Cart (2)
-          </button>
+          <Link href="/cart" className="text-body text-dark-900 transition-colors hover:text-dark-700 font-medium">
+            My Cart ({itemCount})
+          </Link>
         </div>
 
         <button
@@ -92,7 +102,9 @@ export default function Navbar() {
           ))}
           <li className="flex items-center justify-between pt-2">
             <button className="text-body">Search</button>
-            <button className="text-body">My Cart (2)</button>
+            <Link href="/cart" className="text-body font-medium" onClick={() => setOpen(false)}>
+                My Cart ({itemCount})
+            </Link>
           </li>
         </ul>
       </div>
