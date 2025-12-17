@@ -1,18 +1,13 @@
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
 
-export default function RootGroupLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <>
       <Navbar />
-      <main className="flex-1">{children}</main>
+      {children}
       <Footer />
-    </div>
+    </>
   );
 }
-
-
