@@ -239,3 +239,22 @@ export async function getRecommendedMattresses(productId: string) {
     };
   });
 }
+
+export async function getFeaturedProducts() {
+  const data = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      description: products.description,
+      minPrice: sql<number | null>`min(CASE WHEN ${productVariants.stockQuantity} > 0 THEN ${productVariants.price} ELSE NULL END)`,
+      imageUrl: sql<string>`(SELECT url FROM product_images WHERE product_id = ${products.id} ORDER BY "order" LIMIT 1)`,
+    })
+    .from(products)
+    .innerJoin(productVariants, eq(products.id, productVariants.productId))
+    .where(eq(products.isPublished, true))
+    .groupBy(products.id)
+    .orderBy(sql`RANDOM()`)
+    .limit(3);
+
+  return data;
+}
