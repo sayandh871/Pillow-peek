@@ -99,7 +99,6 @@ async function ProductGrid({ filters }: { filters: ReturnType<typeof parseSearch
           id={product.id}
           name={product.name}
           description={product.description}
-          basePrice={product.basePrice}
           startingPrice={product.minPrice}
           imageUrl={product.imageUrl}
           availableSizes={product.availableSizes || []}
