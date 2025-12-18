@@ -45,5 +45,17 @@ export const auth = betterAuth({
     database: {
       generateId: () => uuidv4()
     }
-  }
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          if (!user.image && user.name) {
+            user.image = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`;
+          }
+          return { data: user };
+        },
+      },
+    },
+  },
 });

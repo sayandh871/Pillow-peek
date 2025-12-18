@@ -28,7 +28,10 @@ export default function AuthForm({ mode, onSubmit }: Props) {
     try {
       const result = await onSubmit(formData);
 
-      if (result?.ok) router.push("/");
+      if (result?.ok) {
+        router.push("/");
+        router.refresh();
+      }
       else if (result) setError("Authentication failed. Please try again.");
     } catch (e) {
       console.error("Auth error:", e);

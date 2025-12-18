@@ -32,6 +32,7 @@ interface CartState {
   addItem: (variantId: string, quantity: number) => Promise<void>;
   updateItem: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
+  clear: () => void;
   
   // Getters (computed via hooks usually, but we can store them if updated)
 }
@@ -116,4 +117,6 @@ export const useCartStore = create<CartState>((set, get) => ({
       await get().sync();
     }
   },
+  
+  clear: () => set({ items: [] }),
 }));

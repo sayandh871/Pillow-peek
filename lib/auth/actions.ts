@@ -70,11 +70,15 @@ export async function signUp(formData: FormData) {
 
   const data = signUpSchema.parse(rawData);
 
+  // Generate unique avatar URL using DiceBear initials
+  const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name)}`;
+
   const res = await auth.api.signUpEmail({
     body: {
       email: data.email,
       password: data.password,
       name: data.name,
+      image: avatarUrl,
     },
   });
 
