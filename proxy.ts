@@ -3,7 +3,7 @@ import { betterFetch } from "@better-fetch/fetch";
 import { type Session } from "better-auth";
 import { NextResponse, type NextRequest } from "next/server";
 
-const authRoutes = ["/auth/login", "/auth/signup"];
+const authRoutes = ["/sign-in", "/sign-up"];
 const protectedRoutes = ["/profile", "/checkout"];
 const adminRoutes = ["/admin"];
 
@@ -28,7 +28,7 @@ export default async function proxy(request: NextRequest) {
 
   if (!data) {
     if (isProtectedRoute || isAdminRoute) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
+      return NextResponse.redirect(new URL("/sign-in", request.url));
     }
     return NextResponse.next();
   }
