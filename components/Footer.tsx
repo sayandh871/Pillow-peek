@@ -76,9 +76,15 @@ export default function Footer() {
             <span>© 2025 Pillow Peek, Inc. All Rights Reserved</span>
           </div>
           <ul className="flex items-center gap-6 text-caption">
-            {["Guides", "Terms of Sale", "Terms of Use", "Privacy Policy"].map((t) => (     
+            <li>
+              <Link href="/sleep-guide" className="hover:text-light-300">Guides</Link>
+            </li>
+            <li>
+              <Link href="/contact" className="hover:text-light-300">Contact</Link>
+            </li>
+            {["Terms of Sale", "Terms of Use", "Privacy Policy"].map((t) => (     
               <li key={t}>
-                <Link href="#">{t}</Link>
+                <Link href="#" className="hover:text-light-300">{t}</Link>
               </li>
             ))}
           </ul>
