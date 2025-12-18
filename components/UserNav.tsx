@@ -4,7 +4,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { User, LogOut, Package } from "lucide-react";
+import { User, LogOut, Package, LayoutDashboard } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { signOut } from "@/lib/auth/actions";
 import { useCartStore } from "@/store/cart.store";
@@ -73,6 +73,18 @@ export function UserNav({ session: initialSession }: { session: any }) {
               {user.email}
             </p>
           </div>
+
+          {(user as any).role === "admin" && (
+            <DropdownMenu.Item asChild>
+              <Link
+                href="/admin"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-body-medium text-dark-900 bg-light-100 font-semibold hover:bg-light-200 outline-none cursor-pointer transition-colors mb-1.5"
+              >
+                <LayoutDashboard size={18} className="text-dark-900" />
+                Admin Dashboard
+              </Link>
+            </DropdownMenu.Item>
+          )}
 
           <DropdownMenu.Item asChild>
             <Link
