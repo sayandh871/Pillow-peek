@@ -3,25 +3,16 @@
 import { db } from "../db";
 import { products, productVariants, productImages, orders, orderItems, users, auditLogs } from "../db/schema";
 import { productFormSchema, type ProductFormValues } from "../schemas/admin";
-import { eq, sql, ilike, or } from "drizzle-orm";
-import { auth } from "../auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { eq, ilike, inArray, sql } from "drizzle-orm";
+import { requireAdmin } from "../auth/session";
 import { revalidatePath } from "next/cache";
 import { logAdminAction } from "./audit";
+import type { orderStatusEnum } from "../db/schema/orders";
 
-async function checkAdmin() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session || (session.user as any).role !== "admin") {
-    throw new Error("Unauthorized: Admin access required");
-  }
-}
+type OrderStatus = typeof orderStatusEnum.enumValues[number];
 
 export async function createProduct(data: ProductFormValues) {
-  await checkAdmin();
+  await requireAdmin();
   
   const validatedData = productFormSchema.parse(data);
 
@@ -73,7 +64,7 @@ export async function createProduct(data: ProductFormValues) {
 }
 
 export async function updateStock(variantId: string, quantity: number) {
-  await checkAdmin();
+  await requireAdmin();
 
   await db
     .update(productVariants)
@@ -88,7 +79,7 @@ export async function updateStock(variantId: string, quantity: number) {
 }
 
 export async function getProducts(query?: string) {
-  await checkAdmin();
+  await requireAdmin();
 
   return await db.query.products.findMany({
     where: query ? ilike(products.name, `%${query}%`) : undefined,
@@ -105,7 +96,7 @@ export async function getProducts(query?: string) {
 }
 
 export async function deleteProduct(productId: string) {
-  await checkAdmin();
+  await requireAdmin();
 
   // Cascade delete handles variants and images due to FK definitions
   await db.delete(products).where(eq(products.id, productId));
@@ -118,11 +109,14 @@ export async function deleteProduct(productId: string) {
 }
 
 export async function bulkDeleteProducts(productIds: string[]) {
-  await checkAdmin();
+  await requireAdmin();
+
+  if (productIds.length === 0) {
+    return { success: true };
+  }
 
   return await db.transaction(async (tx) => {
-    // In SQL ID IN (list) is correct.
-    await tx.delete(products).where(sql`id IN ${productIds}`);
+    await tx.delete(products).where(inArray(products.id, productIds));
     
     revalidatePath("/admin/products");
     
@@ -133,11 +127,15 @@ export async function bulkDeleteProducts(productIds: string[]) {
 }
 
 export async function bulkUpdatePublishStatus(productIds: string[], isPublished: boolean) {
-  await checkAdmin();
+  await requireAdmin();
+
+  if (productIds.length === 0) {
+    return { success: true };
+  }
 
   await db.update(products)
     .set({ isPublished, updatedAt: new Date() })
-    .where(sql`id IN ${productIds}`);
+    .where(inArray(products.id, productIds));
 
   revalidatePath("/admin/products");
 
@@ -146,8 +144,8 @@ export async function bulkUpdatePublishStatus(productIds: string[], isPublished:
   return { success: true };
 }
 
-export async function updateOrderStatus(orderId: string, status: any) {
-  await checkAdmin();
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
+  await requireAdmin();
 
   await db.update(orders)
     .set({ status, updatedAt: new Date() })
@@ -161,12 +159,16 @@ export async function updateOrderStatus(orderId: string, status: any) {
   return { success: true };
 }
 
-export async function bulkUpdateOrders(orderIds: string[], status: any) {
-  await checkAdmin();
+export async function bulkUpdateOrders(orderIds: string[], status: OrderStatus) {
+  await requireAdmin();
+
+  if (orderIds.length === 0) {
+    return { success: true };
+  }
 
   await db.update(orders)
     .set({ status, updatedAt: new Date() })
-    .where(sql`id IN ${orderIds}`);
+    .where(inArray(orders.id, orderIds));
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
@@ -177,7 +179,7 @@ export async function bulkUpdateOrders(orderIds: string[], status: any) {
 }
 
 export async function getCustomers() {
-  await checkAdmin();
+  await requireAdmin();
 
   // Fetch users with order stats
   // We can use a raw SQL for complex aggregation or subqueries
@@ -196,7 +198,7 @@ export async function getCustomers() {
 }
 
 export async function getAdminMetadata() {
-  await checkAdmin();
+  await requireAdmin();
   const [categoriesData, sizesData, firmnessData, materialsData] = await Promise.all([
     db.query.categories.findMany(),
     db.query.sizes.findMany(),
@@ -213,7 +215,7 @@ export async function getAdminMetadata() {
 }
 
 export async function getDashboardStats() {
-  await checkAdmin();
+  await requireAdmin();
 
   const [revenueData, activeOrdersData, lowStockData, topSellingData] = await Promise.all([
     // Total Revenue (Paid)
@@ -254,7 +256,7 @@ export async function getDashboardStats() {
 }
 
 export async function getRecentOrders(limit = 5) {
-  await checkAdmin();
+  await requireAdmin();
 
   return await db.query.orders.findMany({
     limit,
@@ -275,7 +277,7 @@ export async function getRecentOrders(limit = 5) {
 }
 
 export async function getOrders() {
-  await checkAdmin();
+  await requireAdmin();
 
   return await db.query.orders.findMany({
     with: {
@@ -295,7 +297,7 @@ export async function getOrders() {
 }
 
 export async function getAuditLogs(limit = 10) {
-  await checkAdmin();
+  await requireAdmin();
 
   return await db.query.auditLogs.findMany({
     limit,

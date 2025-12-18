@@ -3,7 +3,22 @@ import { users } from './users';
 import { relations } from 'drizzle-orm';
 
 export const auditActionEnum = pgEnum('audit_action', ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'BULK_UPDATE', 'BULK_DELETE']);
-export const auditEntityEnum = pgEnum('audit_entity', ['PRODUCT', 'ORDER', 'USER', 'CATEGORY', 'VARIANT']);
+export const auditEntityEnum = pgEnum('audit_entity', [
+  'PRODUCT', 
+  'ORDER', 
+  'USER', 
+  'CATEGORY', 
+  'VARIANT',
+  'REVIEW',
+  'ACCOUNT',
+  'ADDRESS',
+  'PRODUCT_IMAGE',
+  'ORDER_ITEM',
+  'VERIFICATION',
+  'SIZE',
+  'FIRMNESS',
+  'MATERIAL'
+]);
 
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),

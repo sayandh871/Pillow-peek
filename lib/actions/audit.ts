@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { auditLogs, type NewAuditLog } from "../db/schema/audit_logs";
-import { auth } from "../auth";
+import { requireAdmin } from "../auth/session";
 import { headers } from "next/headers";
 
 export async function logAdminAction(
@@ -10,14 +10,7 @@ export async function logAdminAction(
   details?: string
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session || (session.user as any).role !== "admin") {
-      console.error("Unauthorized audit log attempt");
-      return;
-    }
+    const session = await requireAdmin();
 
     const headerList = await headers();
     const ipAddress = headerList.get("x-forwarded-for") || "unknown";

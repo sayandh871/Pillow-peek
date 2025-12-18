@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, Search, User, Mail, Calendar, DollarSign } from "lucide-react";
+import { Download, Search, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { exportToCSV } from "@/lib/utils/export";
 
@@ -79,7 +79,7 @@ export function CustomerTable({ customers }: CustomerTableProps) {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 flex items-center justify-center rounded-full bg-light-200 text-dark-400 group-hover:bg-dark-900 group-hover:text-light-100 transition-colors">
-                            {customer.image ? <img src={customer.image} className="h-full w-full rounded-full object-cover" /> : <User size={18} />}
+                            {customer.image ? <img src={customer.image} alt={customer.name ? `${customer.name} profile` : 'Customer profile'} className="h-full w-full rounded-full object-cover" /> : <User size={18} />}
                         </div>
                         <div>
                             <div className="font-medium text-dark-900">{customer.name}</div>

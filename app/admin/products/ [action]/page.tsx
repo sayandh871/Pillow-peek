@@ -2,6 +2,7 @@ import { getAdminMetadata, getProducts } from "@/lib/actions/admin";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { getProduct } from "@/lib/db/queries";
 import { notFound } from "next/navigation";
+import type { ProductFormValues } from "@/lib/schemas/admin";
 
 export default async function AdminProductActionPage({
   params,
@@ -20,25 +21,45 @@ export default async function AdminProductActionPage({
     notFound();
   }
 
+  // Transform database product to ProductFormValues format
+  const initialData: Partial<ProductFormValues> | undefined = product ? {
+    name: product.name,
+    description: product.description ?? undefined,
+    categoryId: product.categoryId ?? "",
+    basePrice: product.basePrice,
+    isPublished: product.isPublished,
+    images: product.images.map(img => img.url),
+    variants: product.variants.map(v => ({
+      id: v.id,
+      sizeId: v.sizeId,
+      firmnessId: v.firmnessId,
+      materialId: v.materialId,
+      price: v.price,
+      stockQuantity: v.stockQuantity,
+      sku: v.sku,
+      weight: v.weight,
+    })),
+  } : undefined;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
-          {isEdit ? `Edit ${product?.name}` : "Create New Product"}
-        </h1>
-        <p className="text-body-medium text-dark-500">
-          {isEdit 
-            ? "Update product details, manage variants, and refine descriptions." 
-            : "Fill in the details below to add a new mattress to your catalog."}
-        </p>
+    <div className="space-y-6 pb-10">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+            {action === "create" ? "Create Product" : "Edit Product"}
+          </h1>
+          <p className="text-body-medium text-dark-500">
+            {action === "create" 
+              ? "Add a new product to your catalog" 
+              : "Update product details and variants"}
+          </p>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-light-300 bg-white p-6 shadow-sm sm:p-8">
-        <ProductForm 
-          initialData={product as any} 
-          metadata={metadata} 
-        />
-      </div>
+      <ProductForm 
+        metadata={metadata} 
+        initialData={initialData}
+      />
     </div>
   );
 }
